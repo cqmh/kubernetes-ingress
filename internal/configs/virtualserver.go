@@ -57,7 +57,7 @@ type VirtualServerEx struct {
 	Endpoints           map[string][]string
 	VirtualServerRoutes []*conf_v1.VirtualServerRoute
 	ExternalNameSvcs    map[string]bool
-	Policies            map[string]*conf_v1alpha1.Policy
+	Policies            map[string]*conf_v1.Policy
 	PodsByIP            map[string]PodInfo
 	SecretRefs          map[string]*secrets.SecretReference
 }
@@ -629,7 +629,7 @@ func (v *validationResults) addWarningf(msgFmt string, args ...interface{}) {
 	v.warnings = append(v.warnings, fmt.Sprintf(msgFmt, args...))
 }
 
-func (p *policiesCfg) addAccessControlConfig(accessControl *conf_v1alpha1.AccessControl) *validationResults {
+func (p *policiesCfg) addAccessControlConfig(accessControl *conf_v1.AccessControl) *validationResults {
 	res := newValidationResults()
 	p.Allow = append(p.Allow, accessControl.Allow...)
 	p.Deny = append(p.Deny, accessControl.Deny...)
@@ -826,7 +826,7 @@ func (p *policiesCfg) addEgressMTLSConfig(
 func (vsc *virtualServerConfigurator) generatePolicies(
 	ownerDetails policyOwnerDetails,
 	policyRefs []conf_v1.PolicyReference,
-	policies map[string]*conf_v1alpha1.Policy,
+	policies map[string]*conf_v1.Policy,
 	context string,
 	policyOpts policyOptions,
 ) policiesCfg {

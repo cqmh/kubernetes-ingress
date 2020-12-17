@@ -443,6 +443,19 @@ func (lbc *LoadBalancerController) addVirtualServerRouteHandler(handlers cache.R
 	)
 }
 
+func (lbc *LoadBalancerController) addPolicyHandler(handlers cache.ResourceEventHandlerFuncs) {
+	lbc.policyLister, lbc.policyController = cache.NewInformer(
+		cache.NewListWatchFromClient(
+			lbc.confClient.K8sV1().RESTClient(),
+			"policies",
+			lbc.namespace,
+			fields.Everything()),
+		&conf_v1.Policy{},
+		lbc.resync,
+		handlers,
+	)
+}
+
 func (lbc *LoadBalancerController) addGlobalConfigurationHandler(handlers cache.ResourceEventHandlerFuncs, namespace string, name string) {
 	lbc.globalConfigurationLister, lbc.globalConfigurationController = cache.NewInformer(
 		cache.NewListWatchFromClient(
@@ -464,19 +477,6 @@ func (lbc *LoadBalancerController) addTransportServerHandler(handlers cache.Reso
 			lbc.namespace,
 			fields.Everything()),
 		&conf_v1alpha1.TransportServer{},
-		lbc.resync,
-		handlers,
-	)
-}
-
-func (lbc *LoadBalancerController) addPolicyHandler(handlers cache.ResourceEventHandlerFuncs) {
-	lbc.policyLister, lbc.policyController = cache.NewInformer(
-		cache.NewListWatchFromClient(
-			lbc.confClient.K8sV1alpha1().RESTClient(),
-			"policies",
-			lbc.namespace,
-			fields.Everything()),
-		&conf_v1alpha1.Policy{},
 		lbc.resync,
 		handlers,
 	)
@@ -723,7 +723,7 @@ func (lbc *LoadBalancerController) syncPolicy(task task) {
 	glog.V(2).Infof("Adding, Updating or Deleting Policy: %v\n", key)
 
 	if polExists {
-		pol := obj.(*conf_v1alpha1.Policy)
+		pol := obj.(*conf_v1.Policy)
 		err := validation.ValidatePolicy(pol, lbc.isNginxPlus)
 		if err != nil {
 			lbc.recorder.Eventf(pol, api_v1.EventTypeWarning, "Rejected", "Policy %v is invalid and was rejected: %v", key, err)
@@ -2113,8 +2113,8 @@ func (lbc *LoadBalancerController) createVirtualServerEx(virtualServer *conf_v1.
 	return &virtualServerEx
 }
 
-func createPolicyMap(policies []*conf_v1alpha1.Policy) map[string]*conf_v1alpha1.Policy {
-	result := make(map[string]*conf_v1alpha1.Policy)
+func createPolicyMap(policies []*conf_v1.Policy) map[string]*conf_v1.Policy {
+	result := make(map[string]*conf_v1.Policy)
 
 	for _, p := range policies {
 		key := fmt.Sprintf("%s/%s", p.Namespace, p.Name)
@@ -2124,11 +2124,11 @@ func createPolicyMap(policies []*conf_v1alpha1.Policy) map[string]*conf_v1alpha1
 	return result
 }
 
-func (lbc *LoadBalancerController) getAllPolicies() []*conf_v1alpha1.Policy {
-	var policies []*conf_v1alpha1.Policy
+func (lbc *LoadBalancerController) getAllPolicies() []*conf_v1.Policy {
+	var policies []*conf_v1.Policy
 
 	for _, obj := range lbc.policyLister.List() {
-		pol := obj.(*conf_v1alpha1.Policy)
+		pol := obj.(*conf_v1.Policy)
 
 		err := validation.ValidatePolicy(pol, lbc.isNginxPlus)
 		if err != nil {
@@ -2142,8 +2142,8 @@ func (lbc *LoadBalancerController) getAllPolicies() []*conf_v1alpha1.Policy {
 	return policies
 }
 
-func (lbc *LoadBalancerController) getPolicies(policies []conf_v1.PolicyReference, ownerNamespace string) ([]*conf_v1alpha1.Policy, []error) {
-	var result []*conf_v1alpha1.Policy
+func (lbc *LoadBalancerController) getPolicies(policies []conf_v1.PolicyReference, ownerNamespace string) ([]*conf_v1.Policy, []error) {
+	var result []*conf_v1.Policy
 	var errors []error
 
 	for _, p := range policies {
@@ -2165,7 +2165,7 @@ func (lbc *LoadBalancerController) getPolicies(policies []conf_v1.PolicyReferenc
 			continue
 		}
 
-		policy := policyObj.(*conf_v1alpha1.Policy)
+		policy := policyObj.(*conf_v1.Policy)
 
 		err = validation.ValidatePolicy(policy, lbc.isNginxPlus)
 		if err != nil {
@@ -2179,7 +2179,7 @@ func (lbc *LoadBalancerController) getPolicies(policies []conf_v1.PolicyReferenc
 	return result, errors
 }
 
-func (lbc *LoadBalancerController) addJWTSecretRefs(secretRefs map[string]*secrets.SecretReference, policies []*conf_v1alpha1.Policy) error {
+func (lbc *LoadBalancerController) addJWTSecretRefs(secretRefs map[string]*secrets.SecretReference, policies []*conf_v1.Policy) error {
 	for _, pol := range policies {
 		if pol.Spec.JWTAuth == nil {
 			continue
@@ -2198,7 +2198,7 @@ func (lbc *LoadBalancerController) addJWTSecretRefs(secretRefs map[string]*secre
 	return nil
 }
 
-func (lbc *LoadBalancerController) addIngressMTLSSecretRefs(secretRefs map[string]*secrets.SecretReference, policies []*conf_v1alpha1.Policy) error {
+func (lbc *LoadBalancerController) addIngressMTLSSecretRefs(secretRefs map[string]*secrets.SecretReference, policies []*conf_v1.Policy) error {
 	for _, pol := range policies {
 		if pol.Spec.IngressMTLS == nil {
 			continue
@@ -2215,7 +2215,7 @@ func (lbc *LoadBalancerController) addIngressMTLSSecretRefs(secretRefs map[strin
 	return nil
 }
 
-func (lbc *LoadBalancerController) addEgressMTLSSecretRefs(secretRefs map[string]*secrets.SecretReference, policies []*conf_v1alpha1.Policy) error {
+func (lbc *LoadBalancerController) addEgressMTLSSecretRefs(secretRefs map[string]*secrets.SecretReference, policies []*conf_v1.Policy) error {
 	for _, pol := range policies {
 		if pol.Spec.EgressMTLS == nil {
 			continue
@@ -2245,12 +2245,12 @@ func (lbc *LoadBalancerController) addEgressMTLSSecretRefs(secretRefs map[string
 	return nil
 }
 
-func (lbc *LoadBalancerController) getPoliciesForSecret(secretNamespace string, secretName string) []*conf_v1alpha1.Policy {
+func (lbc *LoadBalancerController) getPoliciesForSecret(secretNamespace string, secretName string) []*conf_v1.Policy {
 	return findPoliciesForSecret(lbc.getAllPolicies(), secretNamespace, secretName)
 }
 
-func findPoliciesForSecret(policies []*conf_v1alpha1.Policy, secretNamespace string, secretName string) []*conf_v1alpha1.Policy {
-	var res []*conf_v1alpha1.Policy
+func findPoliciesForSecret(policies []*conf_v1.Policy, secretNamespace string, secretName string) []*conf_v1.Policy {
+	var res []*conf_v1.Policy
 
 	for _, pol := range policies {
 		if pol.Spec.IngressMTLS != nil && pol.Spec.IngressMTLS.ClientCertSecret == secretName && pol.Namespace == secretNamespace {

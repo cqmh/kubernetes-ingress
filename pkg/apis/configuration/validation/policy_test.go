@@ -3,14 +3,15 @@ package validation
 import (
 	"testing"
 
+	v1 "github.com/nginxinc/kubernetes-ingress/pkg/apis/configuration/v1"
 	"github.com/nginxinc/kubernetes-ingress/pkg/apis/configuration/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 func TestValidatePolicy(t *testing.T) {
-	policy := &v1alpha1.Policy{
-		Spec: v1alpha1.PolicySpec{
-			AccessControl: &v1alpha1.AccessControl{
+	policy := &v1.Policy{
+		Spec: v1.PolicySpec{
+			AccessControl: &v1.AccessControl{
 				Allow: []string{"127.0.0.1"},
 			},
 		},
@@ -24,8 +25,8 @@ func TestValidatePolicy(t *testing.T) {
 }
 
 func TestValidatePolicyFails(t *testing.T) {
-	policy := &v1alpha1.Policy{
-		Spec: v1alpha1.PolicySpec{},
+	policy := &v1.Policy{
+		Spec: v1.PolicySpec{},
 	}
 	isPlus := false
 
@@ -34,9 +35,9 @@ func TestValidatePolicyFails(t *testing.T) {
 		t.Errorf("ValidatePolicy() returned no error for invalid input")
 	}
 
-	multiPolicy := &v1alpha1.Policy{
-		Spec: v1alpha1.PolicySpec{
-			AccessControl: &v1alpha1.AccessControl{
+	multiPolicy := &v1.Policy{
+		Spec: v1.PolicySpec{
+			AccessControl: &v1.AccessControl{
 				Allow: []string{"127.0.0.1"},
 			},
 			RateLimit: &v1alpha1.RateLimit{
@@ -54,7 +55,7 @@ func TestValidatePolicyFails(t *testing.T) {
 }
 
 func TestValidateAccessControl(t *testing.T) {
-	validInput := []*v1alpha1.AccessControl{
+	validInput := []*v1.AccessControl{
 		{
 			Allow: []string{},
 		},
@@ -79,31 +80,31 @@ func TestValidateAccessControl(t *testing.T) {
 
 func TestValidateAccessControlFails(t *testing.T) {
 	tests := []struct {
-		accessControl *v1alpha1.AccessControl
+		accessControl *v1.AccessControl
 		msg           string
 	}{
 		{
-			accessControl: &v1alpha1.AccessControl{
+			accessControl: &v1.AccessControl{
 				Allow: nil,
 				Deny:  nil,
 			},
 			msg: "neither allow nor deny is defined",
 		},
 		{
-			accessControl: &v1alpha1.AccessControl{
+			accessControl: &v1.AccessControl{
 				Allow: []string{},
 				Deny:  []string{},
 			},
 			msg: "both allow and deny are defined",
 		},
 		{
-			accessControl: &v1alpha1.AccessControl{
+			accessControl: &v1.AccessControl{
 				Allow: []string{"invalid"},
 			},
 			msg: "invalid allow",
 		},
 		{
-			accessControl: &v1alpha1.AccessControl{
+			accessControl: &v1.AccessControl{
 				Deny: []string{"invalid"},
 			},
 			msg: "invalid deny",
