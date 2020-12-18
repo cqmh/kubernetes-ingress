@@ -766,7 +766,7 @@ func (lbc *LoadBalancerController) sync(task task) {
 	case appProtectUserSig:
 		lbc.syncAppProtectUserSig(task)
 	case nginxCisConnector:
-		lbc.syncNginxCisConnector(task)	
+		lbc.syncNginxCisConnector(task)
 	}
 
 	if !lbc.isNginxReady && lbc.syncQueue.Len() == 0 {
